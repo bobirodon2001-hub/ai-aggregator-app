@@ -6,45 +6,32 @@
     <title>Omnia AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body { background-color: #000; padding-bottom: env(safe-area-inset-bottom); }
         ::-webkit-scrollbar { display: none; }
-        body { background-color: #000; }
     </style>
 </head>
 <body class="text-gray-100 flex flex-col h-screen font-sans">
 
     <!-- Header -->
     <header class="p-3 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-gray-800">
-        <div class="flex gap-2 w-full">
-            <select id="modelSelect" class="flex-1 bg-gray-900 text-xs border border-gray-800 rounded-lg px-3 py-1.5 outline-none text-gray-300">
-                <option value="groq:llama-3.3-70b-versatile">🦙 Llama 3.3 (Groq)</option>
-            </select>
-            <button onclick="toggleSettings()" class="bg-gray-900 hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm border border-gray-800">⚙️</button>
-        </div>
+        <select id="modelSelect" class="flex-1 bg-gray-900 text-xs border border-gray-800 rounded-lg px-3 py-1.5 outline-none text-gray-300"></select>
+        <button onclick="toggleSettings()" class="bg-gray-900 hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm border border-gray-800 ml-2">⚙️</button>
     </header>
 
-    <!-- Settings Panel -->
+    <!-- Settings -->
     <div id="settingsPanel" class="hidden bg-gray-900 p-4 m-3 rounded-xl border border-gray-800 text-sm space-y-3">
-        <div class="space-y-1">
-            <label class="text-xs text-gray-500">Groq Key (<span id="statusGroq" class="text-red-500">Нет</span>)</label>
-            <input type="password" id="groqKeyInput" placeholder="gsk_..." class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
-        </div>
-        <div class="space-y-1">
-            <label class="text-xs text-gray-500">OpenRouter Key (<span id="statusOR" class="text-red-500">Нет</span>)</label>
-            <input type="password" id="orKeyInput" placeholder="sk-or..." class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
-        </div>
-        <div class="flex gap-2">
-            <button onclick="saveKeys()" class="flex-1 bg-indigo-600 py-2 rounded-lg text-white font-medium">Сохранить</button>
-            <button onclick="fetchFreeModels()" class="flex-1 bg-gray-800 py-2 rounded-lg text-gray-300 font-medium">Найти бесплатные</button>
-        </div>
+        <label class="text-xs text-gray-400">Groq Key:</label>
+        <input type="password" id="groqKeyInput" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
+        <label class="text-xs text-gray-400">OpenRouter Key:</label>
+        <input type="password" id="orKeyInput" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
+        <button onclick="saveKeys()" class="w-full bg-indigo-600 py-2 rounded-lg text-white font-medium">Сохранить</button>
     </div>
 
-    <!-- Chat History -->
-    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
-        <div class="text-center text-gray-600 text-sm mt-10">Omnia AI готова. Нажми ⚙️ и введи ключи.</div>
-    </div>
+    <!-- Chat -->
+    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
     <!-- Input -->
-    <div class="p-4 pb-8 bg-black">
+    <div class="p-4 bg-black">
         <div class="bg-gray-900 border border-gray-800 rounded-2xl flex items-center p-2 shadow-lg">
             <textarea id="userInput" rows="1" placeholder="Сообщение..." class="flex-1 bg-transparent px-3 py-2 text-white outline-none resize-none text-sm"></textarea>
             <button onclick="sendMessage()" class="bg-indigo-600 p-2 rounded-xl text-white ml-2">➤</button>
@@ -52,69 +39,68 @@
     </div>
 
     <script>
-        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
-        
-        function updateStatus() {
-            document.getElementById('statusGroq').innerText = localStorage.getItem('groq_api_key') ? 'OK' : 'Нет';
-            document.getElementById('statusGroq').className = localStorage.getItem('groq_api_key') ? 'text-green-500' : 'text-red-500';
-            document.getElementById('statusOR').innerText = localStorage.getItem('or_api_key') ? 'OK' : 'Нет';
-            document.getElementById('statusOR').className = localStorage.getItem('or_api_key') ? 'text-green-500' : 'text-red-500';
-        }
-
-        function saveKeys() { 
-            localStorage.setItem('groq_api_key', document.getElementById('groqKeyInput').value.trim());
-            localStorage.setItem('or_api_key', document.getElementById('orKeyInput').value.trim());
-            updateStatus();
-            alert('Ключи сохранены!');
-        }
-
-        async function fetchFreeModels() {
-            try {
-                const res = await fetch('https://openrouter.ai/api/v1/models');
-                const data = await res.json();
-                const select = document.getElementById('modelSelect');
-                select.innerHTML = '<option value="groq:llama-3.3-70b-versatile">🦙 Llama 3.3 (Groq)</option>';
-                
-                // Фильтруем бесплатные модели OpenRouter
-                const freeModels = data.data.filter(m => m.pricing.prompt === "0");
-                freeModels.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = `or:${m.id}`;
-                    opt.innerText = `🌐 ${m.name.split(' (')[0]}`;
-                    select.appendChild(opt);
-                });
-                alert('Найдено бесплатных моделей: ' + freeModels.length);
-            } catch(e) { alert('Ошибка загрузки моделей'); }
-        }
-
-        window.onload = () => { 
-            document.getElementById('groqKeyInput').value = localStorage.getItem('groq_api_key') || '';
-            document.getElementById('orKeyInput').value = localStorage.getItem('or_api_key') || '';
-            updateStatus();
+        // ЗАВОДСКИЕ КЛЮЧИ (Вшиты в код)
+        const DEFAULT_KEYS = {
+            groq: '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',
+            or: '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'
         };
+
+        const MODELS = [
+            { id: 'groq:llama-3.3-70b-versatile', name: '🦙 Llama 3.3 70B' },
+            { id: 'groq:llama-3.1-8b-instant', name: '🦙 Llama 3.1 8B' },
+            { id: 'groq:llama-3.1-405b', name: '🟢 NVIDIA Llama 3.1 405B' },
+            { id: 'groq:llama-3.1-nemotron-70b', name: '🟢 NVIDIA Nemotron 70B' },
+            { id: 'groq:mistral-small-latest', name: '🌪️ Mistral Small' },
+            { id: 'or:google/gemma-2-27b-it', name: '💎 Gemma 2 27B' },
+            { id: 'or:mistralai/mistral-large', name: '🌪️ Mistral Large' },
+            { id: 'or:openai/gpt-4o-mini', name: '🤖 GPT-OSS (Mini)' },
+            { id: 'or:poolside/poolside-llama-2', name: '🌊 Poolside Laguna' }
+        ];
+
+        window.onload = () => {
+            // Загрузка ключей из памяти или установка дефолтных
+            if(!localStorage.getItem('groq_api_key')) localStorage.setItem('groq_api_key', DEFAULT_KEYS.groq);
+            if(!localStorage.getItem('or_api_key')) localStorage.setItem('or_api_key', DEFAULT_KEYS.or);
+            
+            document.getElementById('groqKeyInput').value = localStorage.getItem('groq_api_key');
+            document.getElementById('orKeyInput').value = localStorage.getItem('or_api_key');
+
+            // Загрузка моделей
+            const select = document.getElementById('modelSelect');
+            MODELS.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id; opt.innerText = m.name;
+                select.appendChild(opt);
+            });
+        };
+
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+        function saveKeys() {
+            localStorage.setItem('groq_api_key', document.getElementById('groqKeyInput').value);
+            localStorage.setItem('or_api_key', document.getElementById('orKeyInput').value);
+            alert('Ключи обновлены!');
+        }
 
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             if (!text) return;
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.innerHTML += `<div class="flex justify-end"><div class="bg-gray-800 text-white rounded-2xl px-4 py-2 max-w-[85%] text-sm">${text}</div></div>`;
+            document.getElementById('chatContainer').innerHTML += `<div class="flex justify-end"><div class="bg-gray-800 text-white rounded-2xl px-4 py-2 text-sm">${text}</div></div>`;
             input.value = '';
-            
+
             const [type, modelId] = document.getElementById('modelSelect').value.split(':');
-            const apiKey = type === 'or' ? localStorage.getItem('or_api_key') : localStorage.getItem('groq_api_key');
-            const apiUrl = type === 'or' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+            const key = (type === 'groq') ? localStorage.getItem('groq_api_key') : localStorage.getItem('or_api_key');
+            const url = (type === 'groq') ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
 
             try {
-                const res = await fetch(apiUrl, {
+                const res = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: text }] })
                 });
                 const data = await res.json();
-                const reply = data.choices[0].message.content;
-                chatContainer.innerHTML += `<div class="flex justify-start"><div class="bg-gray-900 text-gray-100 rounded-2xl px-4 py-2 max-w-[85%] text-sm">${reply}</div></div>`;
-            } catch(e) { chatContainer.innerHTML += `<div class="text-red-500">Ошибка API</div>`; }
+                document.getElementById('chatContainer').innerHTML += `<div class="flex justify-start"><div class="bg-gray-900 text-gray-100 rounded-2xl px-4 py-2 text-sm">${data.choices[0].message.content}</div></div>`;
+            } catch(e) { alert('Ошибка'); }
         }
     </script>
 </body>
