@@ -6,57 +6,59 @@
     <title>Omnia AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; padding-bottom: env(safe-area-inset-bottom); }
-        ::-webkit-scrollbar { display: none; }
+        body { background-color: #0f172a; padding-bottom: env(safe-area-inset-bottom); }
+        .typing::after { content: "▋"; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="text-gray-100 flex flex-col h-screen font-sans">
+<body class="text-slate-200 flex flex-col h-screen font-sans">
 
-    <header class="p-3 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-gray-800">
-        <select id="modelSelect" class="flex-1 bg-gray-900 text-xs border border-gray-800 rounded-lg px-3 py-1.5 outline-none text-gray-300"></select>
-        <button onclick="toggleSettings()" class="bg-gray-900 hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm border border-gray-800 ml-2">⚙️</button>
+    <!-- Header -->
+    <header class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+        <select id="modelSelect" class="bg-slate-800 text-sm border border-slate-700 rounded-md px-3 py-2 outline-none w-full mr-2"></select>
+        <button onclick="toggleSettings()" class="bg-slate-800 p-2 rounded-md hover:bg-slate-700">⚙️</button>
     </header>
 
-    <div id="settingsPanel" class="hidden bg-gray-900 p-4 m-3 rounded-xl border border-gray-800 text-sm space-y-3">
-        <label class="text-xs text-gray-400">Groq API Key:</label>
-        <input type="password" id="groqKeyInput" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
-        <label class="text-xs text-gray-400">OpenRouter API Key:</label>
-        <input type="password" id="orKeyInput" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
-        <button onclick="saveKeys()" class="w-full bg-indigo-600 py-2 rounded-lg text-white font-medium">Сохранить</button>
+    <!-- Settings -->
+    <div id="settingsPanel" class="hidden bg-slate-900 p-4 border-b border-slate-800 text-sm space-y-3">
+        <input type="password" id="groqKeyInput" placeholder="Groq API Key" class="w-full bg-slate-950 border border-slate-700 rounded-md p-2 outline-none">
+        <input type="password" id="orKeyInput" placeholder="OpenRouter API Key" class="w-full bg-slate-950 border border-slate-700 rounded-md p-2 outline-none">
+        <button onclick="saveKeys()" class="w-full bg-blue-600 py-2 rounded-md font-medium text-white">Сохранить</button>
     </div>
 
-    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
-        <div class="text-center text-gray-600 mt-10">Omnia AI готова к работе.</div>
-    </div>
+    <!-- Chat -->
+    <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
-    <div class="p-4 bg-black">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl flex items-center p-2 shadow-lg">
-            <textarea id="userInput" rows="1" placeholder="Сообщение..." class="flex-1 bg-transparent px-3 py-2 text-white outline-none resize-none text-sm"></textarea>
-            <button onclick="sendMessage()" class="bg-indigo-600 p-2 rounded-xl text-white ml-2">➤</button>
+    <!-- Input -->
+    <div class="p-4 bg-slate-900 border-t border-slate-800">
+        <div class="flex items-center gap-2">
+            <textarea id="userInput" rows="1" placeholder="Ваш запрос..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none resize-none"></textarea>
+            <button onclick="sendMessage()" class="bg-blue-600 px-4 py-2 rounded-lg font-medium text-white hover:bg-blue-500">Отправить</button>
         </div>
     </div>
 
     <script>
-        const DEFAULT_KEYS = {
+        const KEYS = {
             groq: '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',
             or: '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'
         };
 
         const MODELS = [
-            { id: 'groq:llama-3.3-70b-versatile', name: '🦙 Llama 3.3 70B' },
-            { id: 'groq:llama-3.1-8b-instant', name: '🦙 Llama 3.1 8B' },
-            { id: 'groq:llama-3.1-405b', name: '🟢 NVIDIA Llama 3.1 405B' },
-            { id: 'groq:llama-3.1-nemotron-70b', name: '🟢 NVIDIA Nemotron 70B' },
-            { id: 'groq:mistral-small-latest', name: '🌪️ Mistral Small' },
-            { id: 'or:google/gemma-2-27b-it', name: '💎 Gemma 2 27B' },
-            { id: 'or:mistralai/mistral-large', name: '🌪️ Mistral Large' },
-            { id: 'or:openai/gpt-4o-mini', name: '🤖 GPT-OSS (Mini)' },
-            { id: 'or:poolside/poolside-llama-2', name: '🌊 Poolside Laguna' }
+            { id: 'groq:llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
+            { id: 'groq:llama-3.1-8b-instant', name: 'Llama 3.1 8B' },
+            { id: 'or:google/gemma-2-27b-it', name: 'Gemma 2 27B' },
+            { id: 'groq:llama-3.1-nemotron-70b', name: 'Nvidia Nemotron 70B' },
+            { id: 'or:mistralai/mistral-large', name: 'Mistral Large' },
+            { id: 'or:openai/gpt-4o-mini', name: 'GPT-4o Mini' }
         ];
 
+        let history = [{role: 'system', content: 'You are a helpful assistant.'}];
+
         window.onload = () => {
-            if(!localStorage.getItem('groq_api_key')) localStorage.setItem('groq_api_key', DEFAULT_KEYS.groq);
-            if(!localStorage.getItem('or_api_key')) localStorage.setItem('or_api_key', DEFAULT_KEYS.or);
+            if(!localStorage.getItem('groq_api_key')) localStorage.setItem('groq_api_key', KEYS.groq);
+            if(!localStorage.getItem('or_api_key')) localStorage.setItem('or_api_key', KEYS.or);
             
             document.getElementById('groqKeyInput').value = localStorage.getItem('groq_api_key');
             document.getElementById('orKeyInput').value = localStorage.getItem('or_api_key');
@@ -79,24 +81,64 @@
 
         async function sendMessage() {
             const input = document.getElementById('userInput');
+            const chat = document.getElementById('chatContainer');
             const text = input.value.trim();
             if (!text) return;
-            document.getElementById('chatContainer').innerHTML += `<div class="flex justify-end"><div class="bg-gray-800 text-white rounded-2xl px-4 py-2 text-sm">${text}</div></div>`;
+
+            history.push({role: 'user', content: text});
+            chat.innerHTML += `<div class="text-right"><div class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">${text}</div></div>`;
             input.value = '';
+
+            const thinkDiv = document.createElement('div');
+            thinkDiv.className = 'text-left text-xs text-slate-500 italic';
+            thinkDiv.innerText = 'Размышляю...';
+            chat.appendChild(thinkDiv);
+            chat.scrollTop = chat.scrollHeight;
 
             const [type, modelId] = document.getElementById('modelSelect').value.split(':');
             const key = (type === 'groq') ? localStorage.getItem('groq_api_key') : localStorage.getItem('or_api_key');
             const url = (type === 'groq') ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
 
             try {
-                const res = await fetch(url, {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: text }] })
+                    body: JSON.stringify({ model: modelId, messages: history, stream: true })
                 });
-                const data = await res.json();
-                document.getElementById('chatContainer').innerHTML += `<div class="flex justify-start"><div class="bg-gray-900 text-gray-100 rounded-2xl px-4 py-2 text-sm">${data.choices[0].message.content}</div></div>`;
-            } catch(e) { alert('Ошибка API. Проверьте ключи.'); }
+
+                chat.removeChild(thinkDiv);
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'text-left';
+                msgDiv.innerHTML = `<div class="inline-block bg-slate-800 text-slate-200 px-4 py-2 rounded-lg text-sm typing"></div>`;
+                chat.appendChild(msgDiv);
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6);
+                            if (jsonStr === '[DONE]') break;
+                            try {
+                                const json = JSON.parse(jsonStr);
+                                const content = json.choices[0].delta.content || '';
+                                fullContent += content;
+                                msgDiv.firstChild.innerText = fullContent;
+                                chat.scrollTop = chat.scrollHeight;
+                            } catch(e) {}
+                        }
+                    }
+                }
+                msgDiv.firstChild.classList.remove('typing');
+                history.push({role: 'assistant', content: fullContent});
+            } catch(e) { chat.innerHTML += `<div class="text-red-500 text-xs">Ошибка подключения.</div>`; }
         }
     </script>
 </body>
