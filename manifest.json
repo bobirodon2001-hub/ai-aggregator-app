@@ -1,0 +1,12 @@
+}
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Omnia Ai",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Omnia",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "description": "completely free neural network aggregator, no subscriptions, trial periods and other inconveniences"
+}
