@@ -5,115 +5,116 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Omnia AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        body { background-color: #000; }
+    </style>
 </head>
-<body class="bg-gray-950 text-gray-100 flex flex-col h-screen font-sans">
-    
+<body class="text-gray-100 flex flex-col h-screen font-sans">
+
     <!-- Header -->
-    <header class="bg-gray-900 border-b border-gray-800 p-3 flex justify-between items-center shadow-md">
-        <h1 class="font-bold text-lg text-indigo-400">Omnia AI</h1>
-        <div class="flex gap-2">
-            <select id="modelSelect" class="bg-gray-800 text-sm border border-gray-700 rounded px-2 py-1 outline-none text-gray-200">
-                <option value="llama-3.3-70b-versatile">🦙 Llama 3.3 70B</option>
-                <option value="llama-3.1-8b-instant">🦙 Llama 3.1 8B</option>
-                <option value="mistral-small-latest">🌪️ Mistral Small</option>
-                <option value="llama-3.1-nemotron-70b">🟢 Nemotron 70B</option>
+    <header class="p-3 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-gray-800">
+        <div class="flex gap-2 w-full">
+            <select id="modelSelect" class="flex-1 bg-gray-900 text-xs border border-gray-800 rounded-lg px-3 py-1.5 outline-none text-gray-300">
+                <option value="groq:llama-3.3-70b-versatile">🦙 Llama 3.3 (Groq)</option>
             </select>
-            <button onclick="toggleSettings()" class="bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded text-sm border border-gray-700">⚙️</button>
+            <button onclick="toggleSettings()" class="bg-gray-900 hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm border border-gray-800">⚙️</button>
         </div>
     </header>
 
     <!-- Settings Panel -->
-    <div id="settingsPanel" class="hidden bg-gray-900 border-b border-gray-800 p-3 text-sm">
-        <label class="block text-gray-400 mb-1">Groq API Key:</label>
+    <div id="settingsPanel" class="hidden bg-gray-900 p-4 m-3 rounded-xl border border-gray-800 text-sm space-y-3">
+        <div class="space-y-1">
+            <label class="text-xs text-gray-500">Groq Key (<span id="statusGroq" class="text-red-500">Нет</span>)</label>
+            <input type="password" id="groqKeyInput" placeholder="gsk_..." class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
+        </div>
+        <div class="space-y-1">
+            <label class="text-xs text-gray-500">OpenRouter Key (<span id="statusOR" class="text-red-500">Нет</span>)</label>
+            <input type="password" id="orKeyInput" placeholder="sk-or..." class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-white outline-none">
+        </div>
         <div class="flex gap-2">
-            <input type="password" id="groqKeyInput" placeholder="gsk_..." class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white outline-none">
-            <button onclick="saveKey()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded text-white font-medium">Сохранить</button>
+            <button onclick="saveKeys()" class="flex-1 bg-indigo-600 py-2 rounded-lg text-white font-medium">Сохранить</button>
+            <button onclick="fetchFreeModels()" class="flex-1 bg-gray-800 py-2 rounded-lg text-gray-300 font-medium">Найти бесплатные</button>
         </div>
     </div>
 
     <!-- Chat History -->
     <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
-        <div class="text-center text-gray-500 text-sm my-2">Добро пожаловать в Omnia AI! Введите API-ключ в настройках (⚙️) и начните общение.</div>
+        <div class="text-center text-gray-600 text-sm mt-10">Omnia AI готова. Нажми ⚙️ и введи ключи.</div>
     </div>
 
-    <!-- Input Area -->
-    <div class="bg-gray-900 border-t border-gray-800 p-3 flex gap-2">
-        <textarea id="userInput" rows="1" placeholder="Введите сообщение..." class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white outline-none resize-none"></textarea>
-        <button onclick="sendMessage()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-medium text-white transition">➤</button>
+    <!-- Input -->
+    <div class="p-4 pb-8 bg-black">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl flex items-center p-2 shadow-lg">
+            <textarea id="userInput" rows="1" placeholder="Сообщение..." class="flex-1 bg-transparent px-3 py-2 text-white outline-none resize-none text-sm"></textarea>
+            <button onclick="sendMessage()" class="bg-indigo-600 p-2 rounded-xl text-white ml-2">➤</button>
+        </div>
     </div>
 
     <script>
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('hidden');
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+        
+        function updateStatus() {
+            document.getElementById('statusGroq').innerText = localStorage.getItem('groq_api_key') ? 'OK' : 'Нет';
+            document.getElementById('statusGroq').className = localStorage.getItem('groq_api_key') ? 'text-green-500' : 'text-red-500';
+            document.getElementById('statusOR').innerText = localStorage.getItem('or_api_key') ? 'OK' : 'Нет';
+            document.getElementById('statusOR').className = localStorage.getItem('or_api_key') ? 'text-green-500' : 'text-red-500';
         }
 
-        function saveKey() {
-            const key = document.getElementById('groqKeyInput').value.trim();
-            localStorage.setItem('groq_api_key', key);
-            alert('Ключ успешно сохранен!');
-            toggleSettings();
+        function saveKeys() { 
+            localStorage.setItem('groq_api_key', document.getElementById('groqKeyInput').value.trim());
+            localStorage.setItem('or_api_key', document.getElementById('orKeyInput').value.trim());
+            updateStatus();
+            alert('Ключи сохранены!');
         }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('groq_api_key');
-            if (saved) document.getElementById('groqKeyInput').value = saved;
+        async function fetchFreeModels() {
+            try {
+                const res = await fetch('https://openrouter.ai/api/v1/models');
+                const data = await res.json();
+                const select = document.getElementById('modelSelect');
+                select.innerHTML = '<option value="groq:llama-3.3-70b-versatile">🦙 Llama 3.3 (Groq)</option>';
+                
+                // Фильтруем бесплатные модели OpenRouter
+                const freeModels = data.data.filter(m => m.pricing.prompt === "0");
+                freeModels.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = `or:${m.id}`;
+                    opt.innerText = `🌐 ${m.name.split(' (')[0]}`;
+                    select.appendChild(opt);
+                });
+                alert('Найдено бесплатных моделей: ' + freeModels.length);
+            } catch(e) { alert('Ошибка загрузки моделей'); }
+        }
+
+        window.onload = () => { 
+            document.getElementById('groqKeyInput').value = localStorage.getItem('groq_api_key') || '';
+            document.getElementById('orKeyInput').value = localStorage.getItem('or_api_key') || '';
+            updateStatus();
         };
 
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             if (!text) return;
-
-            const apiKey = localStorage.getItem('groq_api_key');
-            if (!apiKey) {
-                alert('Сначала введите Groq API ключ в настройках (⚙️)');
-                toggleSettings();
-                return;
-            }
-
             const chatContainer = document.getElementById('chatContainer');
-            
-            // User message
-            chatContainer.innerHTML += `<div class="flex justify-end"><div class="bg-indigo-600 text-white rounded-lg px-4 py-2 max-w-[85%] break-words">${escapeHtml(text)}</div></div>`;
+            chatContainer.innerHTML += `<div class="flex justify-end"><div class="bg-gray-800 text-white rounded-2xl px-4 py-2 max-w-[85%] text-sm">${text}</div></div>`;
             input.value = '';
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            // Loading state
-            const loadingId = 'msg-' + Date.now();
-            chatContainer.innerHTML += `<div id="${loadingId}" class="flex justify-start"><div class="bg-gray-800 text-gray-400 rounded-lg px-4 py-2 max-w-[85%] break-words">Печатает...</div></div>`;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            const selectedModel = document.getElementById('modelSelect').value;
+            
+            const [type, modelId] = document.getElementById('modelSelect').value.split(':');
+            const apiKey = type === 'or' ? localStorage.getItem('or_api_key') : localStorage.getItem('groq_api_key');
+            const apiUrl = type === 'or' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
 
             try {
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                const res = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: selectedModel,
-                        messages: [{ role: 'user', content: text }]
-                    })
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: text }] })
                 });
-
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
-                const reply = data.choices?.[0]?.message?.content || 'Пустой ответ';
-                document.getElementById(loadingId).innerHTML = `<div class="bg-gray-800 text-gray-100 rounded-lg px-4 py-2 max-w-[85%] break-words">${escapeHtml(reply)}</div>`;
-            } catch (err) {
-                document.getElementById(loadingId).innerHTML = `<div class="bg-red-950 border border-red-800 text-red-200 rounded-lg px-4 py-2 max-w-[85%] break-words">⚠️ Ошибка: ${err.message}</div>`;
-            }
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const data = await res.json();
+                const reply = data.choices[0].message.content;
+                chatContainer.innerHTML += `<div class="flex justify-start"><div class="bg-gray-900 text-gray-100 rounded-2xl px-4 py-2 max-w-[85%] text-sm">${reply}</div></div>`;
+            } catch(e) { chatContainer.innerHTML += `<div class="text-red-500">Ошибка API</div>`; }
         }
     </script>
 </body>
