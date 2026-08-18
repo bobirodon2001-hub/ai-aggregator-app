@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omnia AI</title>
+    <title>Omnia AI Dynamic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0b0f19; padding-bottom: env(safe-area-inset-bottom); }
@@ -11,339 +11,120 @@
         @keyframes blink { 50% { opacity: 0; } }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        textarea { height: 40px; }
+        img { border-radius: 1rem; max-width: 100%; margin-top: 5px; }
     </style>
 </head>
 <body class="text-slate-100 flex flex-col h-screen font-sans overflow-hidden">
 
-    <!-- Top Bar -->
-    <header class="p-3 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex justify-between items-center z-10">
-        <button onclick="toggleSidebar()" class="p-2 text-slate-300 hover:text-white flex flex-col gap-1 w-7">
-            <span class="block h-0.5 w-full bg-current rounded"></span>
-            <span class="block h-0.5 w-full bg-current rounded"></span>
-        </button>
-        
-        <div onclick="toggleModelSelector()" id="currentModelBtn" class="flex-1 mx-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm flex justify-between items-center cursor-pointer hover:border-slate-700">
-            <span id="activeModelName" class="font-medium truncate">Загрузка...</span>
-            <span class="text-xs text-slate-500 ml-2">▼</span>
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-xl text-xs shadow-xl border border-slate-700 hidden z-[100]">Чат закреплен</div>
+
+    <header class="p-3 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 flex items-center z-10">
+        <button onclick="toggleSidebar()" class="p-2 text-slate-300">☰</button>
+        <div onclick="toggleModelSelector()" id="currentModelBtn" class="flex-1 mx-3 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm flex justify-between items-center cursor-pointer">
+            <span id="activeModelName" class="font-medium truncate">Поиск моделей...</span>
         </div>
     </header>
 
-    <!-- Sidebar (History & Settings) -->
-    <div id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-slate-900 border-r border-slate-800 transform -translate-x-full transition-transform duration-300 z-50 flex flex-col shadow-2xl">
+    <div id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-slate-900 border-r border-slate-800 transform -translate-x-full transition-transform z-50 flex flex-col">
         <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-            <h2 class="font-bold text-sm tracking-wide">Меню</h2>
-            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white text-lg">✕</button>
+            <h2 class="font-bold text-sm">Чаты</h2>
+            <button onclick="toggleSidebar()" class="text-slate-400">✕</button>
         </div>
-        
-        <div class="p-3">
-            <button onclick="newChat()" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl text-sm font-medium transition">+ Новый чат</button>
-        </div>
-
-        <div class="flex border-b border-slate-800 text-xs">
-            <button onclick="switchTab('history')" id="tabHistoryBtn" class="flex-1 py-2 font-medium border-b-2 border-blue-600 text-blue-400">Чаты</button>
-            <button onclick="switchTab('settings')" id="tabSettingsBtn" class="flex-1 py-2 font-medium text-slate-400">Настройки</button>
-        </div>
-
-        <!-- Tab: History -->
         <div id="historyTab" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
-
-        <!-- Tab: Settings -->
-        <div id="settingsTab" class="flex-1 overflow-y-auto p-4 space-y-4 hidden text-sm">
-            <div>
-                <label class="text-xs text-slate-400 block mb-1">Характер / Системный промт:</label>
-                <select id="presetPrompt" onchange="applyPreset(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs mb-2 outline-none">
-                    <option value="">Свой вариант...</option>
-                    <option value="Ты верный и преданный друг, общаешься тепло, поддерживаешь и используешь разговорный стиль речи.">Друг / Подруга</option>
-                    <option value="Ты — гениальный, но слегка безумный ученый. Объясняешь всё через науку, эксперименты и термины.">Ученый</option>
-                    <option value="Ты — милая, игривая аниме-тян, обожаешь пользователя и общаешься очень ласково.">Игривая тян</option>
-                    <option value="Ты — грубый циник, который кроет матом всё вокруг, но отвечает по делу.">Грубый матершинник</option>
-                </select>
-                <textarea id="systemPromptInput" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs outline-none resize-none" placeholder="Системная инструкция для ИИ..."></textarea>
-            </div>
-            <button onclick="saveSettings()" class="w-full bg-slate-800 hover:bg-slate-700 py-2 rounded-xl text-xs font-medium">Сохранить настройки</button>
-        </div>
     </div>
 
-    <!-- Model Selector Bottom Sheet -->
-    <div id="modelModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end justify-center transition-opacity" onclick="if(event.target === this) toggleModelSelector()">
-        <div class="bg-slate-900 border-t border-slate-800 w-full max-w-lg rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto space-y-3 shadow-2xl">
-            <div class="flex justify-between items-center pb-2 border-b border-slate-800">
-                <h3 class="font-semibold text-sm">Выбор модели</h3>
-                <button onclick="toggleModelSelector()" class="text-slate-400 hover:text-white">✕</button>
-            </div>
+    <div id="modelModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end justify-center" onclick="if(event.target === this) toggleModelSelector()">
+        <div class="bg-slate-900 border-t border-slate-800 w-full max-w-lg rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto space-y-3">
+            <h3 class="font-semibold text-sm pb-2 border-b border-slate-800">Доступные бесплатные модели</h3>
             <div id="modelListContainer" class="space-y-2"></div>
         </div>
     </div>
 
-    <!-- Chat Area -->
     <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
-    <!-- Input Bar -->
     <div class="p-3 bg-slate-900/80 backdrop-blur-md border-t border-slate-800">
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl flex items-end p-2 shadow-inner">
-            <textarea id="userInput" rows="1" placeholder="Сообщение..." class="flex-1 bg-transparent px-3 py-1.5 text-sm outline-none resize-none max-h-32 text-slate-100"></textarea>
-            <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-medium text-white transition ml-2">➤</button>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl flex items-end p-2">
+            <textarea id="userInput" placeholder="Сообщение или 'Нарисуй кота'..." class="flex-1 bg-transparent px-3 py-2 text-sm outline-none resize-none max-h-32 text-slate-100"></textarea>
+            <button onclick="handleUserSend()" class="bg-blue-600 px-4 py-2 rounded-xl text-sm font-medium ml-2">➤</button>
         </div>
     </div>
 
     <script>
-        const KEYS = {
-            groq: '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',
-            or: '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',
-            hf: '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',
-            mistral: 'eCcCNTSdy3y2gHbNoe3HyfLxlWo8F4ht'
-        };
-
-        const MODELS = [
-            { 
-                id: 'groq:llama-3.3-70b-versatile', 
-                name: 'Llama 3.3 70B', 
-                desc: 'Мощная флагманская модель общего назначения.', 
-                mod: 2, modText: 'Средняя модерация' 
-            },
-            { 
-                id: 'groq:llama-3.1-8b-instant', 
-                name: 'Llama 3.1 8B', 
-                desc: 'Очень быстрые ответы, отлично подходит для чатов и кода.', 
-                mod: 1, modText: 'Низкая модерация' 
-            },
-            { 
-                id: 'or:google/gemma-2-27b-it', 
-                name: 'Gemma 2 27B', 
-                desc: 'Сбалансированная модель от Google с глубоким анализом.', 
-                mod: 2, modText: 'Средняя модерация' 
-            },
-            { 
-                id: 'mistral:mistral-small-latest', 
-                name: 'Mistral Small', 
-                desc: 'Быстрая модель для повседневных задач от французского разработчика.', 
-                mod: 1, modText: 'Низкая модерация' 
-            },
-            { 
-                id: 'hf:meta-llama/Llama-3.2-3B-Instruct', 
-                name: 'Llama 3.2 3B (HuggingFace)', 
-                desc: 'Легкая модель через HuggingFace API для быстрых ответов.', 
-                mod: 1, modText: 'Низкая модерация' 
-            },
-            { 
-                id: 'or:openai/gpt-4o-mini', 
-                name: 'GPT-4o Mini', 
-                desc: 'Эффективная мини-версия от OpenAI.', 
-                mod: 3, modText: 'Высокая модерация' 
-            }
-        ];
-
-        let currentModel = MODELS[0].id;
+        const OR_KEY = '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';
+        const HF_KEY = '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';
+        
+        let models = [];
+        let currentModel = '';
         let chats = JSON.parse(localStorage.getItem('omnia_chats')) || [{ id: 1, title: 'Новый чат', pinned: false, messages: [] }];
         let activeChatId = chats[0].id;
 
-        window.onload = () => {
-            if(!localStorage.getItem('system_prompt')) {
-                localStorage.setItem('system_prompt', 'Ты полезный ИИ-ассистент.');
-            }
-            document.getElementById('systemPromptInput').value = localStorage.getItem('system_prompt');
-            renderModelSelector();
-            updateActiveModelUI();
+        window.onload = async () => {
+            await fetchFreeModels();
             renderChats();
             loadActiveChat();
         };
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
-        function toggleModelSelector() { document.getElementById('modelModal').classList.toggle('hidden'); }
-
-        function switchTab(tab) {
-            if(tab === 'history') {
-                document.getElementById('historyTab').classList.remove('hidden');
-                document.getElementById('settingsTab').classList.add('hidden');
-                document.getElementById('tabHistoryBtn').className = 'flex-1 py-2 font-medium border-b-2 border-blue-600 text-blue-400';
-                document.getElementById('tabSettingsBtn').className = 'flex-1 py-2 font-medium text-slate-400';
-            } else {
-                document.getElementById('historyTab').classList.add('hidden');
-                document.getElementById('settingsTab').classList.remove('hidden');
-                document.getElementById('tabSettingsBtn').className = 'flex-1 py-2 font-medium border-b-2 border-blue-600 text-blue-400';
-                document.getElementById('tabHistoryBtn').className = 'flex-1 py-2 font-medium text-slate-400';
-            }
-        }
-
-        function applyPreset(val) { if(val) document.getElementById('systemPromptInput').value = val; }
-        function saveSettings() {
-            localStorage.setItem('system_prompt', document.getElementById('systemPromptInput').value);
-            alert('Настройки сохранены!');
-            toggleSidebar();
-        }
-
-        function renderModelSelector() {
-            const container = document.getElementById('modelListContainer');
-            container.innerHTML = '';
-            MODELS.forEach(m => {
-                let bars = '';
-                for(let i=1; i<=3; i++) {
-                    bars += `<span class="h-2 w-1.5 rounded-sm ${i <= m.mod ? (m.mod === 1 ? 'bg-red-500' : m.mod === 2 ? 'bg-yellow-500' : 'bg-emerald-500') : 'bg-slate-700'}"></span>`;
-                }
-
-                const div = document.createElement('div');
-                div.className = `p-3 rounded-2xl border cursor-pointer transition ${currentModel === m.id ? 'bg-slate-800 border-blue-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`;
-                div.innerHTML = `
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-medium text-sm">${m.name}</span>
-                        <div class="flex items-center gap-1.5" title="${m.modText}">
-                            <div class="flex gap-0.5 items-end">${bars}</div>
-                            <span class="text-[10px] text-slate-400">${m.modText}</span>
-                        </div>
-                    </div>
-                    <p class="text-xs text-slate-400">${m.desc}</p>
-                `;
-                div.onclick = () => {
-                    currentModel = m.id;
+        async function fetchFreeModels() {
+            try {
+                const res = await fetch('https://openrouter.ai/api/v1/models');
+                const data = await res.json();
+                // Фильтруем только те, где цена за prompt = 0
+                models = data.data.filter(m => m.pricing.prompt === "0").slice(0, 15);
+                if(models.length > 0) {
+                    currentModel = models[0].id;
                     updateActiveModelUI();
-                    toggleModelSelector();
                     renderModelSelector();
-                };
-                container.appendChild(div);
-            });
+                }
+            } catch(e) { console.error("Ошибка загрузки моделей", e); }
         }
 
-        function updateActiveModelUI() {
-            const m = MODELS.find(x => x.id === currentModel) || MODELS[0];
-            document.getElementById('activeModelName').innerText = m.name;
+        async function generateImage(prompt) {
+            const bubble = appendMessageUI('assistant', 'Генерирую картинку...', true);
+            try {
+                const response = await fetch("https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ inputs: prompt }),
+                });
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                bubble.innerText = '';
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                bubble.appendChild(img);
+                bubble.classList.remove('typing');
+            } catch(e) { bubble.innerText = 'Ошибка генерации картинки.'; }
         }
 
-        function renderChats() {
-            const container = document.getElementById('historyTab');
-            container.innerHTML = '';
-            
-            // Сортировка: закрепленные сверху
-            chats.sort((a, b) => (b.pinned === true) - (a.pinned === true));
-
-            chats.forEach(chat => {
-                const div = document.createElement('div');
-                div.className = `group flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-sm transition ${chat.id === activeChatId ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/50'}`;
-                div.innerHTML = `
-                    <span onclick="selectChat(${chat.id})" class="truncate flex-1 pr-2">${chat.title}</span>
-                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                        <button onclick="togglePin(event, ${chat.id})" class="text-xs p-1 text-slate-400 hover:text-yellow-400" title="Закрепить">📌</button>
-                        <button onclick="deleteChat(event, ${chat.id})" class="text-xs p-1 text-slate-400 hover:text-red-400" title="Удалить">🗑️</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function newChat() {
-            const newId = Date.now();
-            chats.unshift({ id: newId, title: 'Новый чат', pinned: false, messages: [] });
-            activeChatId = newId;
-            saveAndReload();
-            toggleSidebar();
-        }
-
-        function selectChat(id) {
-            activeChatId = id;
-            renderChats();
-            loadActiveChat();
-            toggleSidebar();
-        }
-
-        function togglePin(e, id) {
-            e.stopPropagation();
-            const c = chats.find(x => x.id === id);
-            if(c) c.pinned = !c.pinned;
-            saveAndReload();
-        }
-
-        function deleteChat(e, id) {
-            e.stopPropagation();
-            if(chats.length <= 1) return alert('Нужно оставить хотя бы один чат!');
-            chats = chats.filter(x => x.id !== id);
-            if(activeChatId === id) activeChatId = chats[0].id;
-            saveAndReload();
-        }
-
-        function saveAndReload() {
-            localStorage.setItem('omnia_chats', JSON.stringify(chats));
-            renderChats();
-        }
-
-        function loadActiveChat() {
-            const chat = chats.find(x => x.id === activeChatId);
-            const container = document.getElementById('chatContainer');
-            container.innerHTML = '';
-            if(!chat) return;
-
-            chat.messages.forEach(msg => {
-                appendMessageUI(msg.role, msg.content, false);
-            });
-        }
-
-        function appendMessageUI(role, text, isTyping = false) {
-            const container = document.getElementById('chatContainer');
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            
-            const bubble = document.createElement('div');
-            bubble.className = `max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-slate-800 text-slate-200 rounded-bl-sm'} ${isTyping ? 'typing' : ''}`;
-            bubble.innerText = text;
-            
-            wrapper.appendChild(bubble);
-            container.appendChild(wrapper);
-            container.scrollTop = container.scrollHeight;
-            return bubble;
-        }
-
-        async function sendMessage() {
+        async function handleUserSend() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             if(!text) return;
-
-            const chat = chats.find(x => x.id === activeChatId);
-            if(chat.messages.length === 0) {
-                chat.title = text.slice(0, 25) + (text.length > 25 ? '...' : '');
-                renderChats();
-            }
-
-            chat.messages.push({ role: 'user', content: text });
-            appendMessageUI('user', text);
-            input.value = '';
-
-            const thinkDiv = document.createElement('div');
-            thinkDiv.className = 'text-left text-xs text-slate-500 italic pl-2';
-            thinkDiv.innerText = 'Размышляю...';
-            document.getElementById('chatContainer').appendChild(thinkDiv);
-
-            const [provider, modelId] = currentModel.split(':');
-            let url = '', key = '';
             
-            const systemPrompt = localStorage.getItem('system_prompt') || 'Ты полезный ассистент.';
-            let apiMessages = [{ role: 'system', content: systemPrompt }, ...chat.messages];
+            input.value = '';
+            appendMessageUI('user', text);
 
-            if(provider === 'groq') {
-                url = 'https://api.groq.com/openai/v1/chat/completions';
-                key = KEYS.groq;
-            } else if(provider === 'or') {
-                url = 'https://openrouter.ai/api/v1/chat/completions';
-                key = KEYS.or;
-            } else if(provider === 'mistral') {
-                url = 'https://api.mistral.ai/v1/chat/completions';
-                key = KEYS.mistral;
-            } else if(provider === 'hf') {
-                url = `https://api-inference.huggingface.co/models/${modelId}/v1/chat/completions`;
-                key = KEYS.hf;
+            if(text.toLowerCase().includes('нарисуй') || text.toLowerCase().includes('создай картинку')) {
+                await generateImage(text);
+            } else {
+                await sendTextMessage(text);
             }
+        }
+
+        async function sendTextMessage(text) {
+            const chat = chats.find(x => x.id === activeChatId);
+            chat.messages.push({ role: 'user', content: text });
+            const bubble = appendMessageUI('assistant', '', true);
 
             try {
-                const response = await fetch(url, {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        model: provider === 'hf' ? modelId : modelId, 
-                        messages: apiMessages, 
-                        stream: true 
-                    })
+                    headers: { 'Authorization': `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: currentModel, messages: chat.messages, stream: true })
                 });
 
-                thinkDiv.remove();
-                const bubble = appendMessageUI('assistant', '', true);
-                
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullContent = '';
@@ -353,7 +134,6 @@
                     if(done) break;
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
-                    
                     for(const line of lines) {
                         if(line.startsWith('data: ')) {
                             const jsonStr = line.slice(6).trim();
@@ -363,18 +143,60 @@
                                 const content = json.choices[0].delta.content || '';
                                 fullContent += content;
                                 bubble.innerText = fullContent;
-                                document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
                             } catch(e) {}
                         }
                     }
                 }
                 bubble.classList.remove('typing');
                 chat.messages.push({ role: 'assistant', content: fullContent });
-                localStorage.setItem('omnia_chats', JSON.stringify(chats));
-            } catch(e) {
-                thinkDiv.remove();
-                appendMessageUI('assistant', 'Ошибка подключения или лимит API исчерпан.');
-            }
+                saveData();
+            } catch(e) { bubble.innerText = 'Ошибка API.'; }
+        }
+
+        function appendMessageUI(role, text, isTyping = false) {
+            const container = document.getElementById('chatContainer');
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[85%] px-4 py-2.5 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-slate-800 text-slate-200 rounded-bl-sm'} ${isTyping ? 'typing' : ''}`;
+            bubble.innerText = text;
+            wrapper.appendChild(bubble);
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+            return bubble;
+        }
+
+        // --- Утилиты ---
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+        function toggleModelSelector() { document.getElementById('modelModal').classList.toggle('hidden'); }
+        function saveData() { localStorage.setItem('omnia_chats', JSON.stringify(chats)); }
+        function updateActiveModelUI() { document.getElementById('activeModelName').innerText = currentModel.split('/').pop(); }
+        function renderModelSelector() {
+            const cont = document.getElementById('modelListContainer');
+            cont.innerHTML = '';
+            models.forEach(m => {
+                const d = document.createElement('div');
+                d.className = `p-3 rounded-2xl border cursor-pointer ${currentModel === m.id ? 'bg-slate-800 border-blue-500' : 'bg-slate-950 border-slate-800'}`;
+                d.innerText = m.name || m.id;
+                d.onclick = () => { currentModel = m.id; updateActiveModelUI(); toggleModelSelector(); };
+                cont.appendChild(d);
+            });
+        }
+        function renderChats() {
+            const cont = document.getElementById('historyTab');
+            cont.innerHTML = '';
+            chats.forEach(c => {
+                const d = document.createElement('div');
+                d.className = `p-2.5 rounded-xl cursor-pointer ${c.id === activeChatId ? 'bg-slate-800' : ''}`;
+                d.innerText = c.title;
+                d.onclick = () => { activeChatId = c.id; loadActiveChat(); toggleSidebar(); };
+                cont.appendChild(d);
+            });
+        }
+        function loadActiveChat() {
+            const chat = chats.find(x => x.id === activeChatId);
+            document.getElementById('chatContainer').innerHTML = '';
+            chat.messages.forEach(msg => appendMessageUI(msg.role, msg.content));
         }
     </script>
 </body>
